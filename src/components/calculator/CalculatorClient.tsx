@@ -87,6 +87,7 @@ export default function CalculatorClient() {
           <nav className="flex items-center gap-6">
             <a href="https://ficology101.com/" className="text-base text-white hover:underline" target="_blank" rel="noopener noreferrer">Home</a>
             <a href="https://ficology101.com/blog/" className="text-base text-white hover:underline" target="_blank" rel="noopener noreferrer">Blog</a>
+            <a href="https://tools.ficology101.com/calculator" className="text-base text-white hover:underline">Calculator</a>
             <a href="https://ficology101.com/about/" className="text-base text-white hover:underline" target="_blank" rel="noopener noreferrer">About</a>
           </nav>
         </div>

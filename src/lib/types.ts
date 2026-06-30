@@ -29,7 +29,7 @@ export interface TableRow {
   year: number;
   /** Derived from GlobalInputs.birthYear — read-only in the UI. */
   age: number;
-  /** Auto-detected from contributionOrWithdrawal — read-only in the UI. */
+  /** Derived from year position relative to targetRetirementAge and coastFI — read-only in the UI. */
   phase: Phase;
   /** Calculated from the prior row's endBalance — read-only in the UI. */
   startBalance: number;

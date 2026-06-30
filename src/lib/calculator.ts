@@ -7,10 +7,10 @@ export function calculateFiNumber(annualExpenses: number, swrPct: number): numbe
   return annualExpenses / (swrPct / 100);
 }
 
-export function detectPhase(contributionOrWithdrawal: number): Phase {
-  if (contributionOrWithdrawal > 0) return "accumulation";
-  if (contributionOrWithdrawal === 0) return "gap";
-  return "retirement";
+function detectPhase(inRetirement: boolean, autoCoast: boolean, coastFiReached: boolean): Phase {
+  if (inRetirement) return "retirement";
+  if (autoCoast && coastFiReached) return "gap";
+  return "accumulation";
 }
 
 /**
@@ -57,7 +57,7 @@ export function calculateRows(
     rows.push({
       year,
       age: year - globalInputs.birthYear,
-      phase: detectPhase(contributionOrWithdrawal),
+      phase: detectPhase(inRetirement, globalInputs.autoCoast, coastFiReached),
       startBalance,
       contributionOrWithdrawal,
       returnPct,
