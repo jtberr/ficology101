@@ -1,105 +1,31 @@
 # Progress
-# FIcology101 FIRE Calculator
+# FIcology101 — Site-Wide
 
-**Last updated**: 2026-06-30
-
----
-
-## Current Status: Feature-complete — ready for deploy
+**Last updated**: 2026-07-05
 
 ---
 
-## What This Project Is
-
-A Next.js app at tools.ficology101.com: a phase-aware FIRE calculator with a year-by-year
-editable table, portfolio chart, and FI date/longevity summary cards. Companion to the
-ficology101.com WordPress blog. No login, no backend — fully client-side.
+## Current Status: tools app feature-complete, pending Vercel config update and deploy
 
 ---
 
-## Key Decisions Made
-- **WordPress stays**: Blog remains on WordPress; this app is tools.ficology101.com only
-- **Single feature v1**: Just the FIRE calculator — no other features until this ships
-- **Client-side only**: All calculation in the browser; no API routes or database for v1
-- **Three-phase model**: Accumulation / Gap Years / Retirement, auto-detected from contribution sign
-- **Tech stack**: Next.js 16 App Router, TypeScript, Tailwind CSS v4, Recharts, Vercel
+## Apps
 
-## Pending Decisions
-- None — all pre-build decisions resolved.
-
----
+| App | Folder | Status |
+|---|---|---|
+| Tools | `tools/` | Feature-complete — see tools/ai-context/PROGRESS.md |
+| Main site | `www/` | Not started — future |
 
 ## Completed
-- [x] Spec all ai-context files (PRD, ARCHITECTURE, SCREENS, DECISIONS, AGENTS, PROGRESS)
-- [x] Scaffold Next.js project — Next.js 16.2.9, TypeScript, Tailwind v4, Recharts installed
-      Folder structure matches agents.md spec; build passes clean (`npm run build`)
-- [x] Define all types in `src/lib/types.ts` — `GlobalInputs`, `Phase`, `TableRow`,
-      `CellOverrides`, `CalculatorResult`, matching ARCHITECTURE.md and DECISIONS.md
-      (includes `yearsToProject` per the "Years to Project" input decision)
-- [x] Write pure calculation functions in `src/lib/calculator.ts` — `calculateFiNumber`,
-      `detectPhase`, `calculateRows`, `calculateResult` all implemented per ARCHITECTURE.md.
-      Sanity-checked manually: $200k start + $30k/yr @ 7% hits $1M FI number at age 46;
-      post-FI withdrawal scenario behaves correctly (portfolio still grows when SWR < return).
-- [x] Build `InputPanel.tsx` — all 5 sections (You, Portfolio Today, Assumptions, Retirement,
-      Table Settings); shared `NumberField` primitive in `src/components/ui/NumberField.tsx`.
-      Visually verified in browser: all 9 number inputs, Fill Down checkbox, live state update.
-- [x] Build `PhaseTable.tsx` — 60-row editable table with inline cell editing, Tab/Enter/Escape
-      navigation, FI row (green) + depletion row (red) + current year (bold) highlights, phase
-      badges (Accumulation/Gap Year/Retirement/FI/$0). Verified: edit commits cascade through all
-      downstream rows, Tab moves focus to next editable cell, blur commits correctly.
-- [x] Build `PortfolioChart.tsx` — Recharts 3.9 LineChart with dual year/age X-axis ticks,
-      $K/$M Y-axis formatting, phase shading via ReferenceArea (blue/amber/green), dashed FI
-      number ReferenceLine, hover tooltip (year, age, phase, balance, contribution/withdrawal).
-      Verified in browser with three-phase scenario; tooltip shows correct values.
-- [x] Build `ResultSummary.tsx` — three cards: FI Number (with expenses÷SWR sub-label),
-      FI Date (green if reached / gray if not, shows "X years from now"), Money Lasts Until
-      (green >90 / amber 80-90 / red <80 / green "Outlasts age N" if never depletes).
-      Verified all three states in browser; color coding and values correct.
+- [x] Monorepo structure created
+- [x] tools/ app restructured from repo root into subfolder
+- [x] ai-context files reorganized to three levels (root / tools / calculator)
+- [x] Root AGENTS.md and ai-context created
 
-## Completed (continued)
-- [x] Wire everything together in `CalculatorClient.tsx` — owns all state (inputs, overrides,
-      fillDown), derives result and computedFiNumber via useMemo, wires all four components.
-      Fill-down cascade logic in handleCellChange. Browser-verified: redirect works, all 4
-      components render, reactivity confirmed (balance change updates FI date + chart in real-time),
-      cell edit cascade correct (row N end = row N+1 start), fill-down cascades to all rows ≥ year.
-
-## Completed (continued — 2026-06-29 / 2026-06-30 polish session)
-- [x] Tab-based InputPanel: Inputs / Assumptions / Settings tabs with fixed h-[340px] content area;
-      no height jump between tabs; tooltips no longer clipped (removed overflow-hidden)
-- [x] Auto-Coast: checkbox in Settings tab; after coastFiYear, rows default to $0 contribution;
-      Coast FI detection guarded so it only fires when yearsToRetirement > 0
-- [x] Withdrawal switch moved to targetRetirementAge (was: triggered when FI balance hit);
-      auto-coast coasting period now correctly runs all the way to retirement age
-- [x] Chart reference lines: Coast FI (purple dashed), Retirement (green dashed),
-      FI Number (teal dashed with label), $0 baseline (gray solid, only when portfolio depletes)
-- [x] Static two-row chart legend at bottom; Coast FI entry always shown (not conditional)
-- [x] FI Number reference line color changed from green → teal to distinguish from Retirement line
-- [x] Table milestone labels under Year column (FI, Coast FI, Depleted) instead of phase pills;
-      row tinting (green = FI year, purple = Coast FI year, red = depletion year)
-- [x] Amber highlight on overridden cell value span (not column background); red text preserved
-      for negative values; pencil SVG icon (diagonal, blue) in editable column headers
-- [x] Cell edit commit guard: only fires onCellChange if parsed value differs from current row value
-- [x] FI Number override: "↺ Reset to auto-calculate" link clears fiNumberOverride back to null
-- [x] ResultSummary: removed fiYear gate from "Money Lasts Until" card — depletion now shown
-      regardless of whether FI number is reached (correct since withdrawals trigger at retire age)
-- [x] Negative Y-axis values formatted with sign + abs value (e.g., -$200K not $-200K)
-- [x] Collapsible "How to use" instructions expanded: updated all bullets to match current UI,
-      added "Scenarios & Tips" subsection with 7 practical tips
-- [x] Per-cell ↺ reset: small reset button appears in overridden cells; clears just that cell's
-      override without affecting other manual edits; cleans up year key when no overrides remain
-- [x] Phase Fill Down: fill-down now stops at phase boundaries (Accumulation/Coasting/Retirement);
-      renamed from "Fill Down" to "Phase Fill Down" in UI and instructions; tooltip updated
-
-## Up Next (in order)
-1. Deploy to Vercel, configure tools.ficology101.com CNAME
-
----
+## Up Next
+1. Update Vercel root directory setting to `tools/`
+2. Verify live site still works at tools.ficology101.com
+3. Build montecarlo tool (next feature)
 
 ## Notes / Things Discovered
-- 2026-06-29: Author has an existing ASP.NET calculator at pawtrackz.pinnaclepet.net/investcalc.aspx.
-  Key insight: the editable year-by-year table with "fill down" is its best feature and should be
-  preserved. The enhancement is wrapping it in phase awareness, a chart, and summary cards.
-- 2026-06-29: Developer has 30 years Microsoft stack experience but is new to React/Next.js.
-  Bridge explanations to ASP.NET patterns. Keep code explicit and typed.
-- 2026-06-29: Scaffolded with Next.js 16.2.9 (not 14 as originally planned — latest stable).
-  Tailwind is v4 (uses @tailwindcss/postcss, not tailwind.config.js). Both are fine for the project.
+- 2026-07-05: Restructured from flat repo to monorepo. Vercel needs root directory updated to `tools/` — this is the one step that affects the live site.
