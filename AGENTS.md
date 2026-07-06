@@ -23,6 +23,11 @@ The WordPress blog at ficology101.com remains separate and is not in this repo.
   useState = ViewState, TypeScript interfaces = C# classes.
 
 ## When Starting a Session
-- For tools app work: read `tools/AGENTS.md` and `tools/ai-context/PROGRESS.md`
+Sessions in this repo run from the root, and work day-to-day is almost always on the `tools/`
+app. So `CLAUDE.md` at the repo root auto-imports both levels every session: this file,
+`ai-context/DECISIONS.md`, `ai-context/PROGRESS.md` (site-wide) plus `tools/AGENTS.md`,
+`tools/ai-context/DECISIONS.md`, `tools/ai-context/PROGRESS.md` (the tools app). No need to
+ask for these to be read — just state the task and the tools-app context is already loaded.
+`tools/CLAUDE.md` mirrors the tools-level imports for the rare case a session is opened with
+`tools/` itself as the working directory.
 - For a specific tool: also read `tools/src/app/[tool-name]/ai-context/PROGRESS.md`
-- For site-wide decisions: read this file and `ai-context/DECISIONS.md`

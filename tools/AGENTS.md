@@ -62,17 +62,14 @@ npm run lint      # TypeScript + ESLint check
 
 ## How to Start a Coding Session
 
-**Every session, say this first:**
-> "Read AGENTS.md and ai-context/PROGRESS.md, then [your task]."
+`CLAUDE.md` auto-imports this file plus `ai-context/PROGRESS.md` and `ai-context/DECISIONS.md`
+every session — just state your task, no need to ask for these to be read.
 
 **For UI work, also add:**
 > "Also read ai-context/SCREENS.md."
 
 **For architecture or calculation logic, also add:**
 > "Also read ai-context/ARCHITECTURE.md."
-
-**For anything where the 'why' matters, also add:**
-> "Also read ai-context/DECISIONS.md."
 
 **At the end of every session:**
 - Update `ai-context/PROGRESS.md` — move completed items to done, update what's in progress
