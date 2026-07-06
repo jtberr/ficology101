@@ -5,7 +5,7 @@
 
 ---
 
-## Current Status: Feature-complete — ready for deploy
+## Current Status: Live — deployed to tools.ficology101.com via Vercel (auto-deploy on push)
 
 ---
 
@@ -118,9 +118,11 @@ ficology101.com WordPress blog. No login, no backend — fully client-side.
       clipping when used inside PhaseTable's scrollable table (see DECISIONS.md)
 - [x] Added conditional tooltip on the "Coast FI" row label (shown only when Auto-Coast is
       unchecked) explaining the milestone and pointing to the Auto-Coast setting
+- [x] Deploy to Vercel, configure tools.ficology101.com CNAME — Vercel auto-deploys on every
+      push to the GitHub repo; already set up and live, no further action needed
 
 ## Up Next (in order)
-1. Deploy to Vercel, configure tools.ficology101.com CNAME
+*None — deployment pipeline is live. Future work is new features/fixes as they come up.*
 
 ---
 
