@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { GlobalInputs } from "@/lib/types";
 import NumberField from "@/components/ui/NumberField";
+import InfoTooltip from "@/components/ui/InfoTooltip";
 
 interface InputPanelProps {
   values: GlobalInputs;
@@ -10,22 +11,13 @@ interface InputPanelProps {
   computedFiNumber: number;
   fillDown: boolean;
   onFillDownChange: (fillDown: boolean) => void;
+  applyInflationFillDown: boolean;
+  onApplyInflationFillDownChange: (applyInflationFillDown: boolean) => void;
   onReset: () => void;
   hasOverrides: boolean;
 }
 
 type Tab = "inputs" | "assumptions" | "settings";
-
-function InfoTooltip({ text }: { text: string }) {
-  return (
-    <span className="group relative inline-flex">
-      <span className="inline-flex h-3.5 w-3.5 cursor-help select-none items-center justify-center rounded-full border border-gray-400 text-[9px] font-bold leading-none text-gray-400 hover:border-gray-600 hover:text-gray-600">i</span>
-      <span className="invisible absolute bottom-full left-1/2 z-50 mb-1.5 w-56 -translate-x-1/2 rounded bg-gray-800 px-2.5 py-2 text-xs font-normal leading-snug text-white shadow-lg group-hover:visible">
-        {text}
-      </span>
-    </span>
-  );
-}
 
 export default function InputPanel({
   values,
@@ -33,6 +25,8 @@ export default function InputPanel({
   computedFiNumber,
   fillDown,
   onFillDownChange,
+  applyInflationFillDown,
+  onApplyInflationFillDownChange,
   onReset,
   hasOverrides,
 }: InputPanelProps) {
@@ -209,30 +203,42 @@ export default function InputPanel({
                   min={1}
                   help="How many years to show in the projection table and chart. 60 years covers most retirement scenarios."
                 />
-                <div className="flex flex-col justify-end gap-2 pb-1">
-                  <label className="flex items-center gap-2 text-sm text-gray-700">
-                    <input
-                      type="checkbox"
-                      checked={fillDown}
-                      onChange={(e) => onFillDownChange(e.target.checked)}
-                    />
-                    <span className="flex items-center gap-1">
-                      Phase Fill Down
-                      <InfoTooltip text="When checked, editing a cell applies that value to all rows below it within the same phase (Accumulation, Coasting, or Retirement). Stops at phase boundaries so edits don't accidentally overwrite other phases." />
-                    </span>
-                  </label>
-                  <label className="flex items-center gap-2 text-sm text-gray-700">
-                    <input
-                      type="checkbox"
-                      checked={values.autoCoast}
-                      onChange={(e) => setField("autoCoast", e.target.checked)}
-                    />
-                    <span className="flex items-center gap-1">
-                      Auto-Coast
-                      <InfoTooltip text="When checked, the table automatically switches to $0 contributions once you reach Coast FI — letting compound growth carry you the rest of the way to your target retirement age." />
-                    </span>
-                  </label>
-                </div>
+              </div>
+              <div className="mt-2 flex flex-col gap-2">
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={fillDown}
+                    onChange={(e) => onFillDownChange(e.target.checked)}
+                  />
+                  <span className="flex items-center gap-1">
+                    Phase Fill Down
+                    <InfoTooltip text="When checked, editing a cell applies that value to all rows below it within the same phase (Accumulation, Coasting, or Retirement). Stops at phase boundaries so edits don't accidentally overwrite other phases." />
+                  </span>
+                </label>
+                <label className={`flex items-center gap-2 pl-6 text-sm ${fillDown ? "text-gray-700" : "text-gray-400"}`}>
+                  <input
+                    type="checkbox"
+                    checked={applyInflationFillDown}
+                    disabled={!fillDown}
+                    onChange={(e) => onApplyInflationFillDownChange(e.target.checked)}
+                  />
+                  <span className="flex items-center gap-1">
+                    Apply Inflation Rate to Withdrawals
+                    <InfoTooltip text="When filling down a Retirement-phase withdrawal, each subsequent year's amount grows by your Inflation Rate instead of repeating the same dollar value — matching how withdrawals normally increase automatically. Only affects withdrawals (negative values); contributions fill down flat." />
+                  </span>
+                </label>
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={values.autoCoast}
+                    onChange={(e) => setField("autoCoast", e.target.checked)}
+                  />
+                  <span className="flex items-center gap-1">
+                    Auto-Coast
+                    <InfoTooltip text="When checked, the table automatically switches to $0 contributions once you reach Coast FI — letting compound growth carry you the rest of the way to your target retirement age." />
+                  </span>
+                </label>
               </div>
             </fieldset>
           </div>

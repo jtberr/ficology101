@@ -43,6 +43,8 @@ export default function ResultSummary({
   targetRetirementAge,
 }: ResultSummaryProps) {
   const lastRow = result.rows[result.rows.length - 1];
+  const currentAge = result.rows[0]?.age ?? null;
+  const alreadyPastTargetAge = currentAge !== null && currentAge >= targetRetirementAge;
 
   // Card 1 — FI Number
   const fiNumberSub = `${formatDollars(annualExpenses)}/yr ÷ ${safeWithdrawalRatePct}% SWR`;
@@ -55,9 +57,11 @@ export default function ResultSummary({
     const yearsAway = result.coastFiYear - currentYear;
     coastDateValue = `Age ${result.coastFiAge} in ${result.coastFiYear}`;
     coastDateSub =
-      yearsAway <= 0
-        ? `You can already coast to retire at ${targetRetirementAge}!`
-        : `${yearsAway} year${yearsAway === 1 ? "" : "s"} from now — then coast to age ${targetRetirementAge}`;
+      yearsAway > 0
+        ? `${yearsAway} year${yearsAway === 1 ? "" : "s"} from now — then coast to age ${targetRetirementAge}`
+        : alreadyPastTargetAge
+        ? "You're already past your target retirement age"
+        : `You can already coast to retire at ${targetRetirementAge}!`;
     coastDateColor = "text-indigo-600";
   } else {
     coastDateValue = "Not reached";

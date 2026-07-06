@@ -116,14 +116,90 @@ inflation-adjusted auto-calculated withdrawals with a fixed number — a destruc
 change. Stopping at phase boundaries makes fill-down safe by default. The name change signals
 the behavior without needing to read the tooltip.
 
-### Inflation-adjusted fill-down for retirement — deferred (not building)
-**Date**: 2026-06-30
-**Decision**: Not adding a sub-option to Phase Fill Down that applies inflation adjustments
-when filling retirement rows.
-**Why**: The scenario is niche (fill-down across many retirement years with custom amounts)
-and the UX is confusing (you type $40,000, cells show $41,200, $42,436...). The per-cell ↺
-reset is a better escape hatch when retirement withdrawals get accidentally overwritten.
-Custom retirement spending scenarios are better handled cell-by-cell. Candidate for v2.
+### Inflation-adjusted fill-down for retirement — built (supersedes earlier deferral)
+**Date**: 2026-07-05
+**Decision**: Added "Apply Inflation Rate to Withdrawals" as a sub-checkbox nested under
+Phase Fill Down (Settings tab), default checked, disabled unless Phase Fill Down is checked.
+When both are on and the fill-down source cell is a Retirement-phase withdrawal (negative
+`contributionOrWithdrawal`), each cascaded row grows by the Inflation Rate compounding from
+the edited year, instead of repeating the same dollar value. Positive overrides (a manual
+contribution during retirement) always cascade flat, regardless of the checkbox — inflation
+doesn't have a meaningful sign-agnostic interpretation for a contribution.
+**Why**: The original 2026-06-30 deferral called the confusing-UX concern out ("you type
+$40,000, cells show $41,200, $42,436..."), but on reflection that's the *correct* behavior —
+it mirrors how the un-overridden default withdrawal already grows automatically, so the
+override should grow the same way once fill-down is invoked. Making it an opt-in checkbox
+(rather than always-on) addresses the original readability concern without giving up the
+feature: the value shown while typing is still the flat number you entered; only the
+cascaded rows below compound.
+
+### FI / Coast FI "already reached at day one" — table highlight vs. card messaging are separate
+**Date**: 2026-07-05
+**Decision**: `calculateResult` exposes two different notions of "when": `fiYear`/`fiAge` and
+`coastFiYear`/`coastFiAge` answer "is this true, and since when" (true even if true on day
+one — current balance already above the FI number, e.g.) and drive the ResultSummary cards.
+Separate `fiHighlightYear`/`coastFiHighlightYear` answer "did this become true *during* the
+projection" (a genuine crossing — starting balance below the threshold, ending balance at/above
+it) and drive the PhaseTable row highlight and PortfolioChart reference line.
+**Why**: Highlighting row 1 (or drawing a chart line at year 0) as "the year you hit FI" is
+misleading when you were already there before the projection starts — there's no in-projection
+milestone to point at. But the summary cards should still say "You are already FI!" in that
+case rather than "Not reached", which is a different, still-true fact. Conflating the two
+into a single field either breaks the table (highlights day one) or breaks the cards (loses
+the "already true" messaging) — they need to stay separate.
+
+### Coast FI threshold clamps years-to-retirement at zero
+**Date**: 2026-07-05
+**Decision**: When computing the Coast FI threshold, `yearsToRetirement` is clamped to
+`Math.max(0, targetRetirementYear - row.year)` rather than skipping the row when the target
+retirement year has already passed.
+**Why**: If Target Retire Age is at or before the user's current age (a valid scenario —
+someone deciding to retire now or who's already past their target), the discount-back
+threshold math degenerates cleanly to the FI number itself at zero years of runway. The
+original code returned `false` outright for zero-or-negative years, so Coast FI Date showed
+"Not reached" even when clearly true. Card copy also special-cases this: if the coast
+milestone is "already reached" and the user is at/past their target retirement age, the
+sub-label reads "You're already past your target retirement age" instead of the otherwise
+nonsensical "You can already coast to retire at 59!" said at age 60.
+
+### Dark mode removed — app is intentionally light-theme only
+**Date**: 2026-07-05
+**Decision**: Deleted the `@media (prefers-color-scheme: dark)` block from `globals.css`
+(a leftover from the `create-next-app` starter template). `--background`/`--foreground`
+now stay pinned to the light values regardless of OS theme.
+**Why**: Every component in the app (header, cards, panels) is hardcoded to light-theme
+Tailwind classes (`bg-white`, `text-gray-900`, etc.) — none of it actually adapts to dark
+mode. But `<input>` elements never set their own text color, so they inherited `body`'s
+`color`, which the leftover media query flipped to near-white under system dark mode —
+rendering barely-visible light-gray text on hardcoded-white input boxes. This is far more
+visible on mobile (dark mode is a common default there) than on desktop, which is how it
+went unnoticed. Retrofitting real dark-mode support across every component was out of
+scope; pinning to light-only closes the mismatch with a one-line change.
+
+### Info tooltips render through a portal, not CSS `group-hover`
+**Date**: 2026-07-05
+**Decision**: `InfoTooltip` (`src/components/ui/InfoTooltip.tsx`, shared by InputPanel and
+PhaseTable) measures its icon's screen position on hover/focus and renders the tooltip panel
+via `createPortal` into `document.body` with `position: fixed`, clamped to the viewport
+horizontally and flipping to open below when there's insufficient room above.
+**Why**: The original implementation was a pure-CSS `.group:hover .panel{visible}` pattern,
+positioned `absolute` relative to the icon. That works fine in the InputPanel (not inside
+any scrolling ancestor), but the same component is also used inside PhaseTable's
+`overflow-auto` table — any tooltip panel that overflows the table's bounds (which happens
+routinely, since the Coast FI icon sits in the leftmost Year column) gets silently clipped
+by the table's own scroll container, in any direction. Rendering through a portal escapes
+that ancestor entirely, so the tooltip is never clipped regardless of where the row sits in
+the scrolled viewport.
+
+### Coast FI row gets a conditional tooltip explaining what it means
+**Date**: 2026-07-05
+**Decision**: When a row is highlighted "Coast FI" and Auto-Coast is *unchecked*, a small
+info icon appears next to the label explaining that the row means "you could stop
+contributing here and still reach your FI Number by your Target Retire Age" and pointing to
+the Auto-Coast setting. The icon is omitted when Auto-Coast is checked, since the table
+already visibly demonstrates the behavior (contributions drop to $0, phase badge changes).
+**Why**: "Coast FI" as a label is jargon that's easy to misread as something the table is
+already doing automatically. The tooltip closes that gap only where it's actually ambiguous.
 
 ---
 

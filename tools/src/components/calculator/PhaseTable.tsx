@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import type { TableRow, CellOverrides } from "@/lib/types";
+import InfoTooltip from "@/components/ui/InfoTooltip";
 
 type EditableField = "contributionOrWithdrawal" | "returnPct";
 interface EditCell {
@@ -17,6 +18,7 @@ export interface PhaseTableProps {
   fiYear: number | null;
   depletionYear: number | null;
   coastFiYear: number | null;
+  autoCoast: boolean;
 }
 
 const EDITABLE_FIELDS: EditableField[] = ["contributionOrWithdrawal", "returnPct"];
@@ -31,6 +33,12 @@ function formatDollars(n: number): string {
 
 function formatPct(n: number): string {
   return `${n.toFixed(1)}%`;
+}
+
+// Row values (e.g. inflation-compounded withdrawals) can carry long floating-point
+// tails; round to cents before dropping them into the editable input.
+function toEditString(n: number): string {
+  return String(Math.round(n * 100) / 100);
 }
 
 function PencilIcon() {
@@ -103,6 +111,7 @@ export default function PhaseTable({
   fiYear,
   depletionYear,
   coastFiYear,
+  autoCoast,
 }: PhaseTableProps) {
   const [activeEdit, setActiveEdit] = useState<EditCell | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -131,13 +140,13 @@ export default function PhaseTable({
     const parsed = parseFloat(editValue);
     if (!isNaN(parsed)) {
       const currentRow = rows.find((r) => r.year === current.year);
-      if (currentRow && parsed !== currentRow[current.field]) {
+      if (currentRow && parsed !== Math.round(currentRow[current.field] * 100) / 100) {
         onCellChange(current.year, current.field, parsed);
       }
     }
     if (nextCell) {
       const nextRow = rows.find((r) => r.year === nextCell.year);
-      setEdit(nextCell, nextRow ? String(nextRow[nextCell.field]) : "");
+      setEdit(nextCell, nextRow ? toEditString(nextRow[nextCell.field]) : "");
     } else {
       setEdit(null);
     }
@@ -202,7 +211,7 @@ export default function PhaseTable({
         )}
         <span
           className={`cursor-pointer rounded px-1 text-right hover:bg-blue-50 ${extraClass}`}
-          onClick={() => setEdit({ year: row.year, field }, String(row[field]))}
+          onClick={() => setEdit({ year: row.year, field }, toEditString(row[field]))}
           title="Click to edit"
         >
           {displayValue}
@@ -244,7 +253,15 @@ export default function PhaseTable({
                   <div className="text-[10px] font-bold uppercase tracking-wide text-green-700">FI</div>
                 )}
                 {row.year === coastFiYear && (
-                  <div className="text-[10px] font-bold uppercase tracking-wide text-purple-700">Coast FI</div>
+                  <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-purple-700">
+                    Coast FI
+                    {!autoCoast && (
+                      <InfoTooltip
+                        text="You could stop contributing here and still reach your FI Number by your Target Retire Age — this row doesn't do that automatically. Check 'Auto-Coast' in Settings if you want the table to do it for you."
+                        iconClassName="border-purple-600 text-purple-700 bg-white hover:border-purple-800 hover:text-purple-900"
+                      />
+                    )}
+                  </div>
                 )}
                 {row.year === depletionYear && (
                   <div className="text-[10px] font-bold uppercase tracking-wide text-red-600">Depleted</div>

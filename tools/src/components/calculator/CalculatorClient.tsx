@@ -28,6 +28,7 @@ export default function CalculatorClient() {
   const [inputs, setInputs] = useState<GlobalInputs>(DEFAULTS);
   const [overrides, setOverrides] = useState<CellOverrides>({});
   const [fillDown, setFillDown] = useState(false);
+  const [applyInflationFillDown, setApplyInflationFillDown] = useState(true);
 
   // Derived state — recalculated only when inputs or overrides change.
   // Think of this as the equivalent of re-running a stored procedure when the parameters change.
@@ -47,10 +48,18 @@ export default function CalculatorClient() {
     setOverrides((prev) => {
       if (fillDown) {
         const currentPhase = result.rows.find((r) => r.year === year)?.phase;
+        const growWithInflation =
+          applyInflationFillDown &&
+          field === "contributionOrWithdrawal" &&
+          currentPhase === "retirement" &&
+          value < 0;
         const next: CellOverrides = { ...prev };
         for (const row of result.rows) {
           if (row.year >= year && row.phase === currentPhase) {
-            next[row.year] = { ...prev[row.year], [field]: value };
+            const cascadedValue = growWithInflation
+              ? Math.round(value * Math.pow(1 + inputs.inflationPct / 100, row.year - year) * 100) / 100
+              : value;
+            next[row.year] = { ...prev[row.year], [field]: cascadedValue };
           }
         }
         return next;
@@ -140,6 +149,8 @@ export default function CalculatorClient() {
               computedFiNumber={computedFiNumber}
               fillDown={fillDown}
               onFillDownChange={setFillDown}
+              applyInflationFillDown={applyInflationFillDown}
+              onApplyInflationFillDownChange={setApplyInflationFillDown}
               onReset={() => setOverrides({})}
               hasOverrides={Object.keys(overrides).length > 0}
             />
@@ -147,7 +158,7 @@ export default function CalculatorClient() {
           <PortfolioChart
             rows={result.rows}
             fiNumber={result.fiNumber}
-            coastFiYear={result.coastFiYear}
+            coastFiYear={result.coastFiHighlightYear}
             retirementYear={inputs.birthYear + inputs.targetRetirementAge}
             depletionYear={result.depletionYear}
           />
@@ -159,9 +170,10 @@ export default function CalculatorClient() {
           overrides={overrides}
           onCellChange={handleCellChange}
           onCellReset={handleCellReset}
-          fiYear={result.fiYear}
+          fiYear={result.fiHighlightYear}
           depletionYear={result.depletionYear}
-          coastFiYear={result.coastFiYear}
+          coastFiYear={result.coastFiHighlightYear}
+          autoCoast={inputs.autoCoast}
         />
 
       </div>

@@ -1,7 +1,7 @@
 # Progress
 # FIcology101 FIRE Calculator
 
-**Last updated**: 2026-06-30
+**Last updated**: 2026-07-05
 
 ---
 
@@ -90,6 +90,35 @@ ficology101.com WordPress blog. No login, no backend — fully client-side.
 - [x] Phase Fill Down: fill-down now stops at phase boundaries (Accumulation/Coasting/Retirement);
       renamed from "Fill Down" to "Phase Fill Down" in UI and instructions; tooltip updated
 
+## Completed (continued — 2026-07-05 bug-fix & polish session)
+- [x] Cell-edit decimal precision: edit box now rounds to cents (`toEditString` helper in
+      `PhaseTable.tsx`) instead of showing raw floating-point tails (e.g. `-69556.443...`)
+      from inflation-compounded retirement withdrawals; commit-guard comparison updated to match
+- [x] FI/Coast FI row highlighting no longer fires on day one: added `fiHighlightYear` and
+      `coastFiHighlightYear` (crossing-only: startBalance below threshold, endBalance at/above)
+      separate from `fiYear`/`coastFiYear` (first-satisfied, used by ResultSummary cards) —
+      see DECISIONS.md. PortfolioChart's Coast FI reference line uses the same crossing value.
+- [x] Coast FI threshold clamps `yearsToRetirement` to a minimum of 0 instead of returning
+      `false` for zero/negative values — fixes "Not reached" when Target Retire Age equals or
+      is before the user's current age despite balance clearing the FI number
+- [x] ResultSummary Coast FI sub-label: "You're already past your target retirement age" when
+      already-reached and the user is at/past Target Retire Age, instead of the nonsensical
+      "You can already coast to retire at 59!" shown at age 60
+- [x] NumberField blur guard: only fires `onChange` if the parsed value differs from the
+      current value — fixes FI Number field locking into a manual override (showing
+      "↺ Reset to auto-calculate") just from tabbing through without editing
+- [x] Built inflation-adjusted Phase Fill Down (previously deferred 2026-06-30, now built with
+      a refined design — see DECISIONS.md): "Apply Inflation Rate to Withdrawals" checkbox,
+      default checked, disabled unless Phase Fill Down is checked; grows cascaded
+      Retirement-phase withdrawals by the Inflation Rate; positive overrides always cascade flat
+- [x] Removed dark-mode CSS (`prefers-color-scheme` media query in `globals.css`) — fixed
+      barely-visible light-gray input text on mobile Chrome (iOS/Android) with system dark mode on
+- [x] Extracted shared `InfoTooltip` component (`src/components/ui/InfoTooltip.tsx`); rebuilt
+      it to render via `createPortal` into `document.body` instead of CSS `group-hover`, fixing
+      clipping when used inside PhaseTable's scrollable table (see DECISIONS.md)
+- [x] Added conditional tooltip on the "Coast FI" row label (shown only when Auto-Coast is
+      unchecked) explaining the milestone and pointing to the Auto-Coast setting
+
 ## Up Next (in order)
 1. Deploy to Vercel, configure tools.ficology101.com CNAME
 
@@ -103,3 +132,10 @@ ficology101.com WordPress blog. No login, no backend — fully client-side.
   Bridge explanations to ASP.NET patterns. Keep code explicit and typed.
 - 2026-06-29: Scaffolded with Next.js 16.2.9 (not 14 as originally planned — latest stable).
   Tailwind is v4 (uses @tailwindcss/postcss, not tailwind.config.js). Both are fine for the project.
+- 2026-07-05: `npm run dev &` backgrounded via bash — if a prior dev server on port 3000 is only
+  killed by its wrapper PID (not the actual `next dev`/Turbopack child), the old process keeps
+  the port and silently keeps serving stale code while new "restarts" spin up on 3001+ and exit.
+  Also hit a real Turbopack dev-cache staleness case (a CSS-only edit wasn't reflected even after
+  confirming the right PID owned port 3000). When dev-server output looks stale: check
+  `netstat -ano` for who actually holds the port, kill that PID directly, and if still stale,
+  delete `.next/` before restarting.

@@ -51,6 +51,10 @@ export interface CalculatorResult {
   fiYear: number | null;
   /** Age at fiYear; null if fiYear is null. */
   fiAge: number | null;
+  /** Table-highlight only: first year FI was actually crossed during the projection (startBalance
+   *  below the FI number, endBalance at/above it). Null if the starting balance already meets or
+   *  exceeds the FI number — there's no in-projection milestone to highlight in that case. */
+  fiHighlightYear: number | null;
   /** First year the balance hits $0; null if it never does within the projection. */
   depletionYear: number | null;
   /** Age at depletionYear; null if depletionYear is null. */
@@ -61,4 +65,7 @@ export interface CalculatorResult {
   coastFiYear: number | null;
   /** Age at coastFiYear; null if coastFiYear is null. */
   coastFiAge: number | null;
+  /** Table/chart highlight only: first year Coast FI was actually crossed during the
+   *  projection. Null if the starting balance already clears the threshold. */
+  coastFiHighlightYear: number | null;
 }

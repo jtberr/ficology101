@@ -46,7 +46,8 @@ export default function NumberField({
   }
 
   function handleBlur() {
-    onChange(parse(draft ?? String(value)));
+    const parsed = parse(draft ?? String(value));
+    if (parsed !== value) onChange(parsed);
     setDraft(null);
   }
 

@@ -92,26 +92,38 @@ export function calculateResult(
   const rows = calculateRows(globalInputs, overrides, fiNumber);
 
   const fiRow = rows.find((row) => row.endBalance >= fiNumber);
+  // Table highlight only: the year FI was actually *reached* during the projection.
+  // Suppressed if the starting balance is already at/above the FI number — there's
+  // no in-projection milestone to point at in that case.
+  const fiCrossingRow = rows.find((row) => row.startBalance < fiNumber && row.endBalance >= fiNumber);
   const depletionRow = rows.find((row) => row.endBalance <= 0);
 
   // Coast FI: first year where balance can grow to fiNumber by targetRetirementAge
   // without any further contributions, using the accumulation return rate.
   const targetRetirementYear = globalInputs.birthYear + globalInputs.targetRetirementAge;
-  const coastFiRow = rows.find((row) => {
-    const yearsToRetirement = targetRetirementYear - row.year;
-    if (yearsToRetirement <= 0) return false;
-    const threshold = fiNumber / Math.pow(1 + globalInputs.expectedReturnPct / 100, yearsToRetirement);
-    return row.endBalance >= threshold;
-  });
+  // Once the target retirement year has already passed, there's no runway left to
+  // discount over — the threshold collapses to the FI number itself.
+  const coastThreshold = (year: number) => {
+    const yearsToRetirement = Math.max(0, targetRetirementYear - year);
+    return fiNumber / Math.pow(1 + globalInputs.expectedReturnPct / 100, yearsToRetirement);
+  };
+  const coastFiRow = rows.find((row) => row.endBalance >= coastThreshold(row.year));
+  // Table/chart highlight only: the year Coast FI was actually *reached* during the
+  // projection. Suppressed if the starting balance already clears the threshold.
+  const coastFiCrossingRow = rows.find(
+    (row) => row.startBalance < coastThreshold(row.year) && row.endBalance >= coastThreshold(row.year)
+  );
 
   return {
     rows,
     fiYear: fiRow?.year ?? null,
     fiAge: fiRow?.age ?? null,
+    fiHighlightYear: fiCrossingRow?.year ?? null,
     depletionYear: depletionRow?.year ?? null,
     depletionAge: depletionRow?.age ?? null,
     fiNumber,
     coastFiYear: coastFiRow?.year ?? null,
     coastFiAge: coastFiRow?.age ?? null,
+    coastFiHighlightYear: coastFiCrossingRow?.year ?? null,
   };
 }
