@@ -121,6 +121,11 @@ ficology101.com WordPress blog. No login, no backend — fully client-side.
 - [x] Deploy to Vercel, configure tools.ficology101.com CNAME — Vercel auto-deploys on every
       push to the GitHub repo; already set up and live, no further action needed
 
+## Completed (continued — 2026-07-06)
+- [x] Added a `#` row-number column as the first column in `PhaseTable.tsx`, so users can see
+      at a glance how many years into the projection a row is, distinct from the calendar
+      Year column next to it
+
 ## Up Next (in order)
 *None — deployment pipeline is live. Future work is new features/fixes as they come up.*
 

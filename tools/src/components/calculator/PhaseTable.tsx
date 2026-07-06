@@ -225,6 +225,7 @@ export default function PhaseTable({
       <table className="w-full border-collapse text-sm">
         <thead className="sticky top-0 z-10 border-b border-gray-200 bg-white">
           <tr className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <th className="px-3 py-2 text-left">#</th>
             <th className="px-3 py-2 text-left">Year</th>
             <th className="px-3 py-2 text-left">Age</th>
             <th className="px-3 py-2 text-left">Phase</th>
@@ -245,8 +246,9 @@ export default function PhaseTable({
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100">
-          {rows.map((row) => (
+          {rows.map((row, idx) => (
             <tr key={row.year} className={rowClassName(row, fiYear, depletionYear, coastFiYear)}>
+              <td className="px-3 py-1.5 tabular-nums text-gray-400">{idx + 1}</td>
               <td className="px-3 py-1.5">
                 <div className="tabular-nums">{row.year}</div>
                 {row.year === fiYear && (
