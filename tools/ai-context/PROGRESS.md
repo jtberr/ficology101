@@ -167,6 +167,14 @@ ficology101.com WordPress blog. No login, no backend — fully client-side.
       the chart's legend height — see DECISIONS.md for the several rounds of legend wording/
       layout iteration
 
+## Completed (continued — 2026-07-10 bug fix)
+- [x] Fixed "Depleted" table label: was matching a single precomputed `depletionYear`
+      (first row where `endBalance <= 0`, no check on the starting side), so a negative
+      Current Balance wrongly labeled row 1 "Depleted" and no later row could ever be
+      labeled even if the balance recovered and dropped again. `PhaseTable.tsx` now computes
+      `isDepletionCrossing(row) = row.startBalance > 0 && row.endBalance <= 0` per row
+      instead, and no longer takes a `depletionYear` prop — see DECISIONS.md.
+
 ## Up Next (in order)
 *None — all recently-discussed features are built. Future work is new features/fixes as they
 come up.*

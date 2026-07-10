@@ -353,7 +353,6 @@ export default function CalculatorClient() {
           onCellChange={handleCellChange}
           onCellReset={handleCellReset}
           fiYear={result.fiHighlightYear}
-          depletionYear={result.depletionYear}
           coastFiYear={result.coastFiHighlightYear}
           autoCoast={inputs.autoCoast}
         />

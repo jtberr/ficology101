@@ -363,6 +363,26 @@ and "-" characters directly (removing the swatch), then reverted to keep the swa
 plain-colored "+ / -" text together, then dropped color from the text (redundant with the
 swatch), landing on: swatch icon + "Balance (+ / -)" plain text.
 
+### Table "Depleted" label is a per-row crossing check, not the single first-match depletionYear
+**Date**: 2026-07-10
+**Decision**: `PhaseTable.tsx` no longer takes a `depletionYear` prop. It computes depletion
+per row directly from data it already has: `isDepletionCrossing(row) = row.startBalance > 0 &&
+row.endBalance <= 0`, applied independently to every row rather than matching against one
+precomputed year.
+**Why**: `calculator.ts`'s `depletionYear` (`rows.find(row => row.endBalance <= 0)`) is a
+single first-match value with no check on the starting side. Reported bug: if Current Balance
+itself is negative, row 1 trivially satisfies `endBalance <= 0` and got labeled "Depleted"
+even though nothing actually depleted during the projection — it started that way. And because
+it's a single first-match value, no later row could ever be labeled "Depleted" even if the
+balance recovered positive and dipped negative again. The fix mirrors the FI/Coast FI
+"highlight is a crossing, not first-satisfied" distinction (see the 2026-07-05 decision above)
+but goes one step further: unlike FI/Coast FI (one-time milestones, so a single highlighted
+row makes sense), depletion can genuinely recur, so every qualifying row gets flagged, not
+just the first. `depletionYear`/`depletionAge` in `CalculatorResult` are unchanged and still
+used by the "Money Lasts Until" summary card and the chart's $0 reference-line visibility —
+both are correctly first-satisfied, day-one-inclusive concepts (same reasoning as the FI/Coast
+FI cards), so only the table's per-row labeling needed the crossing treatment.
+
 ---
 
 ## Open — Needs Decision

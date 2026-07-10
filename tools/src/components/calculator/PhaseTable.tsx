@@ -16,7 +16,6 @@ export interface PhaseTableProps {
   onCellChange: (year: number, field: EditableField, value: number) => void;
   onCellReset: (year: number, field: EditableField) => void;
   fiYear: number | null;
-  depletionYear: number | null;
   coastFiYear: number | null;
   autoCoast: boolean;
 }
@@ -79,13 +78,23 @@ function PhaseBadge({ row }: { row: TableRow }) {
   );
 }
 
+// A genuine depletion event: the balance had money at the start of the year and ended at
+// or below $0. Deliberately excludes a row that starts already at/below $0 (e.g. the very
+// first row, if Current Balance itself is negative) — that's not a depletion that happened
+// during the projection, it's just already-depleted, the same distinction already made for
+// FI/Coast FI "highlight" vs "first satisfied" above. Unlike FI/Coast FI, this isn't a single
+// first-match milestone — the balance can recover and re-deplete more than once, and every
+// such crossing should be flagged, not just the first.
+function isDepletionCrossing(row: TableRow): boolean {
+  return row.startBalance > 0 && row.endBalance <= 0;
+}
+
 function rowClassName(
   row: TableRow,
   fiYear: number | null,
-  depletionYear: number | null,
   coastFiYear: number | null,
 ): string {
-  if (row.year === depletionYear) return "bg-red-50";
+  if (isDepletionCrossing(row)) return "bg-red-50";
   if (row.year === fiYear) return "bg-green-100";
   if (row.year === coastFiYear) return "bg-purple-100";
   return "hover:bg-gray-50";
@@ -109,7 +118,6 @@ export default function PhaseTable({
   onCellChange,
   onCellReset,
   fiYear,
-  depletionYear,
   coastFiYear,
   autoCoast,
 }: PhaseTableProps) {
@@ -247,7 +255,7 @@ export default function PhaseTable({
         </thead>
         <tbody className="divide-y divide-gray-100">
           {rows.map((row, idx) => (
-            <tr key={row.year} className={rowClassName(row, fiYear, depletionYear, coastFiYear)}>
+            <tr key={row.year} className={rowClassName(row, fiYear, coastFiYear)}>
               <td className="px-3 py-1.5 tabular-nums text-gray-400">{idx + 1}</td>
               <td className="px-3 py-1.5">
                 <div className="tabular-nums">{row.year}</div>
@@ -265,7 +273,7 @@ export default function PhaseTable({
                     )}
                   </div>
                 )}
-                {row.year === depletionYear && (
+                {isDepletionCrossing(row) && (
                   <div className="text-[10px] font-bold uppercase tracking-wide text-red-600">Depleted</div>
                 )}
               </td>
