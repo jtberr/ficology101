@@ -201,6 +201,28 @@ already visibly demonstrates the behavior (contributions drop to $0, phase badge
 **Why**: "Coast FI" as a label is jargon that's easy to misread as something the table is
 already doing automatically. The tooltip closes that gap only where it's actually ambiguous.
 
+### Coast FI threshold discounts back `yearsToRetirement - 1`, not `yearsToRetirement`
+**Date**: 2026-07-09
+**Decision**: Both `calculateRows`' coast-detection check and `calculateResult`'s
+`coastThreshold` now discount `fiNumber` back by `targetRetirementYear - year - 1` years
+(floored at 0), not `targetRetirementYear - year`.
+**Why**: The target retirement year itself is not a coasting-growth year — per the
+"withdrawal switch triggers at targetRetirementAge" decision above, `year >= targetRetirementYear`
+already flips that row to retirement mode (lower `retirementReturnPct`, minus a full year of
+`annualExpenses` subtracted before growth). The old formula assumed coasting compounded at
+`expectedReturnPct` for the full `yearsToRetirement` years, but coasting only ever gets
+`yearsToRetirement - 1` real growth years before the switch — a one-year overpromise. Because
+Coast FI is defined to just barely clear the bar (no margin), that shortfall was fatal: with
+Auto-Coast on, real-world reproduction (birth year 2003, $80k balance, $2,400/yr contribution,
+all other defaults) showed the balance permanently topping out around $1.43M against a $1.5M
+FI number — Coast FI was flagged in 2026, contributions stopped, and the balance never
+actually reached FI, contradicting the entire premise of the feature. Fixing the exponent
+moves the detected Coast FI year later (2026 → 2029 in the repro case) but guarantees the
+balance actually reaches the FI number before retirement withdrawals begin (FI year 2067,
+one year before the 2068 retirement year) and stays above it afterward. This also shifts the
+Coast FI date shown in ResultSummary later for every user, even without Auto-Coast enabled —
+correcting a previously-too-optimistic date, not a regression.
+
 ---
 
 ## Open — Needs Decision

@@ -126,6 +126,15 @@ ficology101.com WordPress blog. No login, no backend — fully client-side.
       at a glance how many years into the projection a row is, distinct from the calendar
       Year column next to it
 
+## Completed (continued — 2026-07-09 bug fix)
+- [x] Fixed Coast FI threshold off-by-one: discount exponent was `targetRetirementYear - year`,
+      overcounting one year of coasting growth since the retirement year itself already
+      switches to withdrawal mode. Fixed to `targetRetirementYear - year - 1` in both
+      `calculateRows` and `calculateResult` (`src/lib/calculator.ts`) — see DECISIONS.md.
+      Bug reproduced with Auto-Coast enabled: balance permanently fell short of the FI
+      number and never reached it. Verified fixed via standalone simulation of the exact
+      reported inputs before and after the change.
+
 ## Up Next (in order)
 *None — deployment pipeline is live. Future work is new features/fixes as they come up.*
 

@@ -69,8 +69,10 @@ export function calculateRows(
     }
 
     if (!coastFiReached) {
-      const yearsToRetirement = targetRetirementYear - year;
-      if (yearsToRetirement > 0) {
+      // -1: the retirement year itself isn't a coasting-growth year — it already switches
+      // to withdrawal mode (calculateResult's coastThreshold mirrors this same adjustment).
+      const yearsToRetirement = targetRetirementYear - year - 1;
+      if (yearsToRetirement >= 0) {
         const coastThreshold = fiNumber / Math.pow(1 + globalInputs.expectedReturnPct / 100, yearsToRetirement);
         if (endBalance >= coastThreshold) coastFiReached = true;
       }
@@ -101,10 +103,12 @@ export function calculateResult(
   // Coast FI: first year where balance can grow to fiNumber by targetRetirementAge
   // without any further contributions, using the accumulation return rate.
   const targetRetirementYear = globalInputs.birthYear + globalInputs.targetRetirementAge;
-  // Once the target retirement year has already passed, there's no runway left to
+  // -1: the retirement year itself isn't a coasting-growth year — it already switches to
+  // withdrawal mode, so coasting only gets (yearsToRetirement - 1) real growth years before
+  // that. Once the target retirement year has already passed, there's no runway left to
   // discount over — the threshold collapses to the FI number itself.
   const coastThreshold = (year: number) => {
-    const yearsToRetirement = Math.max(0, targetRetirementYear - year);
+    const yearsToRetirement = Math.max(0, targetRetirementYear - year - 1);
     return fiNumber / Math.pow(1 + globalInputs.expectedReturnPct / 100, yearsToRetirement);
   };
   const coastFiRow = rows.find((row) => row.endBalance >= coastThreshold(row.year));
