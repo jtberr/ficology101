@@ -27,6 +27,54 @@ const PHASE_FILL: Record<Phase, string> = {
   retirement: "#A7F3D0",   // emerald-200
 };
 
+const BALANCE_LINE_ID = "balanceLineColor";
+const POSITIVE_BALANCE_COLOR = "#3B82F6"; // blue-500
+const NEGATIVE_BALANCE_COLOR = "#EF4444"; // red-500
+
+interface GradientStop {
+  offset: string;
+  color: string;
+}
+
+/** Builds gradient stops so the balance line renders red anywhere endBalance is negative.
+ *  Rows are plotted on a category (evenly-spaced) x-axis, so a row's fractional position is
+ *  just its index divided by (rows.length - 1). Each zero-crossing between two rows is
+ *  linearly interpolated to find the exact fractional position, and gets two stops at
+ *  (almost) the same offset — one in the outgoing color, one in the incoming color — which
+ *  is the standard SVG trick for a hard color cutover rather than a gradual blend. Handles
+ *  any number of crossings, not just one. */
+function getBalanceLineGradientStops(rows: TableRow[]): GradientStop[] {
+  if (rows.length === 0) return [];
+  const lastIndex = rows.length - 1;
+  let currentColor = rows[0].endBalance < 0 ? NEGATIVE_BALANCE_COLOR : POSITIVE_BALANCE_COLOR;
+  const stops: GradientStop[] = [{ offset: "0%", color: currentColor }];
+
+  for (let i = 0; i < lastIndex; i++) {
+    const a = rows[i].endBalance;
+    const b = rows[i + 1].endBalance;
+    const aNeg = a < 0;
+    const bNeg = b < 0;
+    if (aNeg !== bNeg) {
+      const t = a / (a - b); // safe: a - b !== 0 since the signs differ
+      const fraction = lastIndex === 0 ? 0 : (i + t) / lastIndex;
+      const offset = `${(fraction * 100).toFixed(4)}%`;
+      const newColor = bNeg ? NEGATIVE_BALANCE_COLOR : POSITIVE_BALANCE_COLOR;
+      stops.push({ offset, color: currentColor });
+      stops.push({ offset, color: newColor });
+      currentColor = newColor;
+    }
+  }
+
+  stops.push({ offset: "100%", color: currentColor });
+  return stops;
+}
+
+function BalanceActiveDot({ cx, cy, payload }: { cx?: number; cy?: number; payload?: TableRow }) {
+  if (cx === undefined || cy === undefined) return null;
+  const color = payload && payload.endBalance < 0 ? NEGATIVE_BALANCE_COLOR : POSITIVE_BALANCE_COLOR;
+  return <circle cx={cx} cy={cy} r={4} fill={color} />;
+}
+
 function formatYAxis(value: number): string {
   const abs = Math.abs(value);
   const sign = value < 0 ? "-" : "";
@@ -122,6 +170,7 @@ export default function PortfolioChart({ rows, fiNumber, coastFiYear, retirement
   }
 
   const phaseSpans = getPhaseSpans(rows);
+  const balanceLineGradientStops = getBalanceLineGradientStops(rows);
 
   return (
     <div className="flex h-full flex-col rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
@@ -129,6 +178,14 @@ export default function PortfolioChart({ rows, fiNumber, coastFiYear, retirement
       <div className="flex-1 pb-1">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={rows} margin={{ top: 8, right: 24, bottom: 8, left: 16 }}>
+          <defs>
+            <linearGradient id={BALANCE_LINE_ID} x1="0" y1="0" x2="1" y2="0">
+              {balanceLineGradientStops.map((stop, i) => (
+                <stop key={i} offset={stop.offset} stopColor={stop.color} />
+              ))}
+            </linearGradient>
+          </defs>
+
           <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
 
           {/* Phase shading behind everything else */}
@@ -203,10 +260,10 @@ export default function PortfolioChart({ rows, fiNumber, coastFiYear, retirement
           <Line
             type="monotone"
             dataKey="endBalance"
-            stroke="#3B82F6"
+            stroke={`url(#${BALANCE_LINE_ID})`}
             strokeWidth={2}
             dot={false}
-            activeDot={{ r: 4, fill: "#3B82F6" }}
+            activeDot={<BalanceActiveDot />}
           />
         </LineChart>
       </ResponsiveContainer>
@@ -244,6 +301,13 @@ export default function PortfolioChart({ rows, fiNumber, coastFiYear, retirement
               <line x1="0" y1="5" x2="18" y2="5" stroke="#9333EA" strokeWidth="2" strokeDasharray="3 2" />
             </svg>
             Coast FI
+          </span>
+          <span className="flex items-center gap-1.5">
+            <svg width="26" height="10" className="shrink-0">
+              <line x1="0" y1="5" x2="13" y2="5" stroke={POSITIVE_BALANCE_COLOR} strokeWidth="2" />
+              <line x1="13" y1="5" x2="26" y2="5" stroke={NEGATIVE_BALANCE_COLOR} strokeWidth="2" />
+            </svg>
+            Balance (+ / -)
           </span>
         </div>
       </div>

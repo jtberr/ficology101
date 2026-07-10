@@ -281,6 +281,88 @@ doesn't trigger a write either.
 them — a real risk of thinking in monthly terms — and a corresponding bullet in the
 "How to use this calculator" instructions.
 
+### Persistence: localStorage auto-save + Reset Calculator + Copy Share Link
+**Date**: 2026-07-10
+**Decision**: Three related features, all client-side only:
+1. **Auto-save to localStorage** — `inputs`, table `overrides`, and the `fillDown`/
+   `applyInflationFillDown`/`entryUnit` preferences are silently written to a single
+   localStorage key on every real change and restored on the next visit. No save button;
+   same "just works" reactivity as the rest of the calculator.
+2. **Reset Calculator** (renamed from an initial "Reset All Inputs" — see below) — a button
+   next to "Clear Manual Table Edits" that resets everything (inputs, overrides, preferences)
+   back to defaults and clears the localStorage key. Behind a `confirm()` prompt, since unlike
+   "Clear Manual Table Edits" it destroys persisted data, not just in-memory state. Only
+   rendered when `hasAnyChanges` is true (anything differs from a fresh install) — mirrors
+   the existing `hasOverrides`-gated visibility of "Clear Manual Table Edits".
+3. **Copy Share Link** — an icon-only button (top-right of the tab strip, far right of the
+   Inputs/Assumptions/Settings labels) that encodes `inputs` + `fillDown` +
+   `applyInflationFillDown` + `entryUnit` (everything on those three tabs, but deliberately
+   *not* table overrides) into a `?d=` URL query param and copies the resulting URL to the
+   clipboard. Opening that link restores all four. Table overrides are excluded specifically
+   because a heavily-edited table could push the URL past safe cross-browser length limits.
+**Why**: Requested directly — users want to not re-enter their numbers every visit, and to be
+able to hand a scenario to someone else (or their own other device) without an account.
+localStorage keeps the "no server, no accounts" design fully intact (data never leaves the
+browser). "Reset Calculator" exists because once something persists automatically, there needs
+to be a visible way back to a blank slate — both for testing new scenarios and for privacy on
+a shared/borrowed computer. It was originally named "Reset All Inputs," but that read as
+scoped to the Inputs tab specifically when it actually also clears table edits; renamed for
+clarity. The icon-only Share Link button (rather than a labeled button, tried first as "Copy
+Share Link" text in the tab strip, then relocated near the Annual/Monthly toggle) exists
+because the tab strip only has ~80px of leftover width after the three tab labels — nowhere
+near enough for a labeled button, but plenty for a small icon matching the app's existing
+inline-SVG icon convention (the pencil icon marking editable table columns).
+**Also decided**: opening a shared link must not silently overwrite the visitor's own saved
+localStorage profile just from viewing it. This is enforced via a `suppressAutoSaveRef` that
+starts `true` only on the share-link hydration path, and is only ever cleared by a genuine
+user edit (tracked through wrapped state setters, not by counting renders) — the auto-save
+effect checks this ref and skips writing until it's cleared. Editing anything after opening a
+shared link is treated as adopting it as your new working profile from that point on.
+**Bug hit and fixed**: the first implementation used a lazy `useState(() => ...)` initializer
+to read localStorage/the URL param, cached via a module-level variable to avoid re-parsing
+per-field. This caused a React hydration mismatch — the initializer runs during the server's
+render (no `window`, falls back to defaults) *and* during the client's first render (`window`
+exists, immediately reads real data), so server and client HTML disagreed and React discarded
+the tree. Fixed by reverting to the standard safe pattern: `useState` always starts at
+hardcoded defaults (identical on server and client), and the real values are swapped in
+afterward in a `useEffect` that only runs post-hydration — accepting a one-frame flash of
+defaults in exchange for never mismatching. This required a scoped
+`react-hooks/set-state-in-effect` lint exception on that effect, since hydrating from an
+external client-only store on mount is one of the few legitimate reasons to call `setState`
+inside an effect — the lint rule doesn't know that the alternative (the lazy initializer) is
+actively broken for SSR.
+**Rejected alternative — live URL sync**: continuously updating the address bar's `?d=` query
+string on every keystroke (so the browser's native bookmark star would always capture current
+state) was considered and explicitly rejected by the user. It would make native one-click
+bookmarking work, but at the cost of the address bar visibly rewriting itself on every edit —
+those two properties are in tension and can't both be had without some form of live URL
+updating. Native star-bookmarking a specific scenario remains unsupported; the documented
+workaround is Copy Share Link followed by manually creating a bookmark with that URL pasted in.
+
+### Portfolio balance line renders red below $0
+**Date**: 2026-07-10
+**Decision**: The endBalance line in `PortfolioChart.tsx` is colored via an SVG
+`linearGradient` (`stroke={url(#balanceLineColor)}`) rather than a flat color. Gradient stops
+are computed by walking consecutive row pairs and linearly interpolating the exact fractional
+x-position where `endBalance` crosses zero, inserting two stops at (almost) the same offset
+— one in the outgoing color, one in the incoming — for a hard cutover rather than a blended
+transition. Handles any number of crossings, not just a single depletion point. The hover
+"active dot" also picks its color the same way (red if `payload.endBalance < 0`), so it never
+mismatches the segment it's sitting on.
+**Why**: Requested directly, to make portfolio depletion visually obvious on the chart itself
+rather than only inferred from the separate $0 reference line and the "Depleted" table label.
+Recharts has no built-in per-segment line coloring; the gradient-with-interpolated-stops
+technique is the standard way to fake it, and generalizing to multiple crossings (rather than
+assuming a single one) costs little extra code while covering edge cases like a manually
+overridden table recovering above $0 after a dip.
+**Legend iteration**: went through several rounds of feedback — first two separate legend
+entries (one row each for "Balance" and "Balance Below $0"), then consolidated into one row
+folded into the existing FI Number/Retirement/Coast FI reference-line row (rather than its own
+row) to control vertical space, then a combined two-color swatch, then tried coloring the "+"
+and "-" characters directly (removing the swatch), then reverted to keep the swatch *and* the
+plain-colored "+ / -" text together, then dropped color from the text (redundant with the
+swatch), landing on: swatch icon + "Balance (+ / -)" plain text.
+
 ---
 
 ## Open — Needs Decision

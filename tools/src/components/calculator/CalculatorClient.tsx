@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import InputPanel from "@/components/calculator/InputPanel";
 import PhaseTable from "@/components/calculator/PhaseTable";
 import PortfolioChart from "@/components/calculator/PortfolioChart";
@@ -24,15 +24,175 @@ const DEFAULTS: GlobalInputs = {
   ageToProjectTo: 110,
 };
 
+const STORAGE_KEY = "ficology101-calculator-v1";
+const SHARE_PARAM = "d";
+
+interface PersistedState {
+  inputs: GlobalInputs;
+  overrides: CellOverrides;
+  fillDown: boolean;
+  applyInflationFillDown: boolean;
+  entryUnit: "annual" | "monthly";
+}
+
+// Everything on the Inputs, Assumptions, and Settings tabs is shareable via URL — i.e.
+// PersistedState minus `overrides`, which is deliberately excluded so a heavily-edited
+// table can't blow past safe URL-length limits.
+type ShareableState = Omit<PersistedState, "overrides">;
+
+function encodeShareableState(state: ShareableState): string {
+  return btoa(encodeURIComponent(JSON.stringify(state)));
+}
+
+function decodeShareableState(encoded: string): ShareableState | null {
+  try {
+    const parsed = JSON.parse(decodeURIComponent(atob(encoded))) as Partial<ShareableState>;
+    if (!parsed.inputs) return null;
+    return {
+      inputs: parsed.inputs,
+      fillDown: parsed.fillDown ?? false,
+      applyInflationFillDown: parsed.applyInflationFillDown ?? true,
+      entryUnit: parsed.entryUnit === "monthly" ? "monthly" : "annual",
+    };
+  } catch {
+    return null;
+  }
+}
+
 export default function CalculatorClient() {
-  const [inputs, setInputs] = useState<GlobalInputs>(DEFAULTS);
-  const [overrides, setOverrides] = useState<CellOverrides>({});
-  const [fillDown, setFillDown] = useState(false);
-  const [applyInflationFillDown, setApplyInflationFillDown] = useState(true);
+  // Initial state must be identical on the server render and the client's first render —
+  // DEFAULTS/empty, never read from window/localStorage here. A lazy useState initializer
+  // that reads localStorage would run differently on the server (no window) than on the
+  // client's first render (window exists), causing a React hydration mismatch. The actual
+  // share-link/localStorage values are swapped in afterward, in the mount effect below,
+  // once hydration is already complete — accepting a one-frame flash of defaults in
+  // exchange for never mismatching server-rendered HTML.
+  const [inputs, setInputsState] = useState<GlobalInputs>(DEFAULTS);
+  const [overrides, setOverridesState] = useState<CellOverrides>({});
+  const [fillDown, setFillDownState] = useState(false);
+  const [applyInflationFillDown, setApplyInflationFillDownState] = useState(true);
   // Display-only preference — doesn't affect GlobalInputs or any calculation. Contribution
   // and Expenses are always stored as annual figures; this just controls how they're
   // entered/shown in the InputPanel.
-  const [entryUnit, setEntryUnit] = useState<"annual" | "monthly">("annual");
+  const [entryUnit, setEntryUnitState] = useState<"annual" | "monthly">("annual");
+  const [shareLinkCopied, setShareLinkCopied] = useState(false);
+
+  // Suppresses auto-save until a genuine user edit happens. Without this, merely opening
+  // someone else's shared link would immediately overwrite the visitor's own saved
+  // localStorage profile the moment the mount effect hydrates state — see DECISIONS.md.
+  const suppressAutoSaveRef = useRef(false);
+
+  function markUserEdit() {
+    suppressAutoSaveRef.current = false;
+  }
+
+  // Wrapped setters — every real user-driven change flows through these. This is how the
+  // auto-save effect below distinguishes "the user changed something" from "hydration set
+  // the initial state on mount."
+  function setInputs(next: GlobalInputs) {
+    markUserEdit();
+    setInputsState(next);
+  }
+  function setOverrides(update: CellOverrides | ((prev: CellOverrides) => CellOverrides)) {
+    markUserEdit();
+    setOverridesState(update);
+  }
+  function setFillDown(next: boolean) {
+    markUserEdit();
+    setFillDownState(next);
+  }
+  function setApplyInflationFillDown(next: boolean) {
+    markUserEdit();
+    setApplyInflationFillDownState(next);
+  }
+  function setEntryUnit(next: "annual" | "monthly") {
+    markUserEdit();
+    setEntryUnitState(next);
+  }
+
+  // One-time client-only hydration after mount. A share-link URL param takes priority over
+  // localStorage. This has to run in an effect (not a lazy useState initializer) specifically
+  // to avoid the hydration mismatch described above — reading window/localStorage during
+  // render diverges between server and client. Calling setState here is one of the
+  // recognized-legitimate uses of an effect: synchronizing from an external, client-only
+  // store on mount.
+  /* eslint-disable react-hooks/set-state-in-effect -- see comment above: hydrating from an
+     external, client-only store (URL param / localStorage) on mount is a recognized
+     legitimate exception, and moving this to a lazy useState initializer would reintroduce
+     a real server/client hydration mismatch instead. */
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const shared = params.get(SHARE_PARAM);
+    if (shared) {
+      const decoded = decodeShareableState(shared);
+      if (decoded) {
+        suppressAutoSaveRef.current = true;
+        setInputsState(decoded.inputs);
+        setFillDownState(decoded.fillDown);
+        setApplyInflationFillDownState(decoded.applyInflationFillDown);
+        setEntryUnitState(decoded.entryUnit);
+      }
+      // Clean the URL so a later refresh re-reads localStorage (including any edits made
+      // since) instead of re-importing the original shared link every time.
+      window.history.replaceState(null, "", window.location.pathname);
+      return;
+    }
+
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw) as PersistedState;
+        setInputsState(saved.inputs);
+        setOverridesState(saved.overrides);
+        setFillDownState(saved.fillDown);
+        setApplyInflationFillDownState(saved.applyInflationFillDown);
+        setEntryUnitState(saved.entryUnit === "monthly" ? "monthly" : "annual");
+      }
+    } catch {
+      // localStorage unavailable (e.g. private browsing) — start from defaults silently
+    }
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  // Auto-save on every real change. Skipped while suppressAutoSaveRef is true (i.e. right
+  // after opening a shared link, before any edit).
+  useEffect(() => {
+    if (suppressAutoSaveRef.current) return;
+    try {
+      const toSave: PersistedState = { inputs, overrides, fillDown, applyInflationFillDown, entryUnit };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+    } catch {
+      // localStorage unavailable (e.g. private browsing) — nothing to do
+    }
+  }, [inputs, overrides, fillDown, applyInflationFillDown, entryUnit]);
+
+  function handleResetCalculator() {
+    if (!confirm("Reset the calculator and clear saved data? This can't be undone.")) return;
+    setInputsState(DEFAULTS);
+    setOverridesState({});
+    setFillDownState(false);
+    setApplyInflationFillDownState(true);
+    setEntryUnitState("annual");
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+  }
+
+  function handleCopyShareLink() {
+    const encoded = encodeShareableState({ inputs, fillDown, applyInflationFillDown, entryUnit });
+    const url = `${window.location.origin}${window.location.pathname}?${SHARE_PARAM}=${encoded}`;
+    navigator.clipboard
+      .writeText(url)
+      .then(() => {
+        setShareLinkCopied(true);
+        window.setTimeout(() => setShareLinkCopied(false), 2000);
+      })
+      .catch(() => {
+        // clipboard write can fail (e.g. permissions) — button just won't show confirmation
+      });
+  }
 
   // Derived state — recalculated only when inputs or overrides change.
   // Think of this as the equivalent of re-running a stored procedure when the parameters change.
@@ -43,6 +203,16 @@ export default function CalculatorClient() {
     () => calculateFiNumber(inputs.annualExpenses, inputs.safeWithdrawalRatePct),
     [inputs.annualExpenses, inputs.safeWithdrawalRatePct]
   );
+
+  // Whether anything differs from a fresh install — drives whether "Reset Calculator" shows
+  // at all. GlobalInputs is flat (all primitives, no nesting), so a JSON comparison is a
+  // reliable, simple stand-in for a deep-equal check here.
+  const hasAnyChanges =
+    JSON.stringify(inputs) !== JSON.stringify(DEFAULTS) ||
+    Object.keys(overrides).length > 0 ||
+    fillDown !== false ||
+    applyInflationFillDown !== true ||
+    entryUnit !== "annual";
 
   function handleCellChange(
     year: number,
@@ -120,7 +290,8 @@ export default function CalculatorClient() {
             <li>In the table, the <strong>Contribution / Withdrawal</strong> and <strong>Return %</strong> columns are editable (pencil icon in header). Click any cell to override it for a specific year. An <span className="font-medium text-amber-700">amber highlight</span> and <strong>↺</strong> icon appear when a cell has a manual override — click <strong>↺</strong> to restore just that cell to its calculated default.</li>
             <li><strong>Phase Fill Down</strong> (Settings tab) cascades a cell edit to all rows below it within the same phase. Stops at Accumulation → Coasting → Retirement boundaries so edits don&apos;t accidentally overwrite other phases.</li>
             <li><strong>Auto-Coast</strong> (Settings tab) automatically switches to $0 contributions once you hit Coast FI, letting compound growth carry you the rest of the way to retirement.</li>
-            <li><strong>Clear Manual Table Edits</strong> (link below the input panel) removes all cell overrides at once and restores the calculated defaults.</li>
+            <li><strong>Clear Manual Table Edits</strong> (link below the input panel) removes all cell overrides at once and restores the calculated defaults. <strong>Reset Calculator</strong>, next to it (shown only once anything&apos;s been changed), goes further — it also resets every input, assumption, and setting back to default and clears your saved data on this device.</li>
+            <li>Your inputs, table edits, and settings are automatically saved on this device and restored next time you visit — nothing is sent anywhere, it stays in your browser. The <strong>🔗 link icon</strong> (top-right of the input panel, next to the tabs) copies a share link that restores your Inputs, Assumptions, and Settings for you or someone else on any device — table edits aren&apos;t included in the link.</li>
             <li>Phase colors: <span className="font-medium text-blue-700">blue = accumulation</span>, <span className="font-medium text-amber-600">yellow = coasting</span> (no contributions, not yet withdrawing), <span className="font-medium text-emerald-700">green = retirement</span>.</li>
           </ul>
 
@@ -160,6 +331,10 @@ export default function CalculatorClient() {
               onEntryUnitChange={setEntryUnit}
               onReset={() => setOverrides({})}
               hasOverrides={Object.keys(overrides).length > 0}
+              onResetCalculator={handleResetCalculator}
+              hasAnyChanges={hasAnyChanges}
+              onCopyShareLink={handleCopyShareLink}
+              shareLinkCopied={shareLinkCopied}
             />
           </div>
           <PortfolioChart

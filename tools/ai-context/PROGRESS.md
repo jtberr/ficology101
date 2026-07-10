@@ -148,12 +148,28 @@ ficology101.com WordPress blog. No login, no backend — fully client-side.
 - [x] Added irregular-expense reminder to the Monthly Expenses tooltip and a corresponding
       bullet to the "How to use this calculator" instructions
 
+## Completed (continued — 2026-07-10 persistence & chart session)
+- [x] localStorage auto-save: `inputs`, table `overrides`, and all preferences
+      (`fillDown`/`applyInflationFillDown`/`entryUnit`) silently persist on every real change
+      and restore on next visit — no save button, wrapped in try/catch for private-browsing
+      safety. See DECISIONS.md for the hydration-mismatch bug hit and fixed along the way.
+- [x] "Reset Calculator" button (renamed from "Reset All Inputs") — resets inputs, table
+      overrides, and preferences to defaults and clears localStorage; behind a `confirm()`
+      prompt; only shown when `hasAnyChanges` is true
+- [x] "Copy Share Link" — icon-only button (far right of the tab strip) encoding
+      inputs+fillDown+applyInflationFillDown+entryUnit into a `?d=` URL param, copied to the
+      clipboard. Opening a shared link never overwrites the visitor's own saved localStorage
+      profile until they make a genuine edit — see DECISIONS.md for the suppression mechanism
+- [x] Portfolio balance line in `PortfolioChart.tsx` now renders red wherever `endBalance` is
+      negative, via an SVG gradient with interpolated zero-crossing stops (handles multiple
+      crossings, not just one); hover dot color matches; legend entry added (swatch icon +
+      "Balance (+ / -)") folded into the existing reference-line legend row to avoid growing
+      the chart's legend height — see DECISIONS.md for the several rounds of legend wording/
+      layout iteration
+
 ## Up Next (in order)
-1. Persist user inputs across visits via `localStorage` (auto-save on every input change,
-   restore on load) plus a "Reset All Inputs" button to clear saved data and return to
-   defaults — discussed and agreed in principle, not yet built. A shareable-URL option
-   (encode inputs into a query param for bookmarking/sharing) was also discussed as a
-   complementary approach, not yet decided whether to build both or just localStorage.
+*None — all recently-discussed features are built. Future work is new features/fixes as they
+come up.*
 
 ---
 

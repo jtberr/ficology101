@@ -7,6 +7,25 @@ import InfoTooltip from "@/components/ui/InfoTooltip";
 
 type EntryUnit = "annual" | "monthly";
 
+function LinkIcon() {
+  return (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="shrink-0"
+    >
+      <path d="M10 14a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07l-1.5 1.5" />
+      <path d="M14 10a5 5 0 0 0-7.07 0l-2.83 2.83a5 5 0 0 0 7.07 7.07l1.5-1.5" />
+    </svg>
+  );
+}
+
 interface InputPanelProps {
   values: GlobalInputs;
   onChange: (values: GlobalInputs) => void;
@@ -19,6 +38,10 @@ interface InputPanelProps {
   onEntryUnitChange: (unit: EntryUnit) => void;
   onReset: () => void;
   hasOverrides: boolean;
+  onResetCalculator: () => void;
+  hasAnyChanges: boolean;
+  onCopyShareLink: () => void;
+  shareLinkCopied: boolean;
 }
 
 type Tab = "inputs" | "assumptions" | "settings";
@@ -35,6 +58,10 @@ export default function InputPanel({
   onEntryUnitChange,
   onReset,
   hasOverrides,
+  onResetCalculator,
+  hasAnyChanges,
+  onCopyShareLink,
+  shareLinkCopied,
 }: InputPanelProps) {
   const [activeTab, setActiveTab] = useState<Tab>("inputs");
 
@@ -62,21 +89,31 @@ export default function InputPanel({
   return (
     <div className="flex flex-col">
       {/* Tab strip — negative margins bleed to card edges, bg-gray-50 creates visual header */}
-      <div className="-mx-5 -mt-5 mb-4 flex rounded-t-lg border-b border-gray-200 bg-gray-50 px-5 pt-3">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setActiveTab(tab.id)}
-            className={`-mb-px px-4 py-2 text-sm font-medium ${
-              activeTab === tab.id
-                ? "border-b-2 border-blue-500 text-blue-600"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="-mx-5 -mt-5 mb-4 flex items-center justify-between rounded-t-lg border-b border-gray-200 bg-gray-50 px-5 pt-3">
+        <div className="flex">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`-mb-px px-4 py-2 text-sm font-medium ${
+                activeTab === tab.id
+                  ? "border-b-2 border-blue-500 text-blue-600"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={onCopyShareLink}
+          title="Copies a shareable link to your clipboard. Opening it restores your Inputs, Assumptions, and Settings on this or another device — manual table edits are not included."
+          className="mb-2 flex shrink-0 items-center text-gray-400 hover:text-blue-500"
+        >
+          {shareLinkCopied ? <span className="text-xs font-medium text-green-600">Copied!</span> : <LinkIcon />}
+        </button>
       </div>
 
       {/* Tab content — fixed height matches Inputs tab (tallest tab) so panel never jumps between tabs */}
@@ -300,14 +337,26 @@ export default function InputPanel({
 
       </div>
 
-      <div className="mt-3 flex h-6 items-center justify-end">
+      <div className="mt-3 flex h-6 items-center justify-end gap-3">
         {hasOverrides && (
+          <>
+            <button
+              type="button"
+              onClick={onReset}
+              className="text-xs text-gray-400 hover:text-red-500 hover:underline"
+            >
+              Clear Manual Table Edits
+            </button>
+            {hasAnyChanges && <span className="text-gray-300">|</span>}
+          </>
+        )}
+        {hasAnyChanges && (
           <button
             type="button"
-            onClick={onReset}
-            className="text-xs text-gray-400 hover:text-red-500 hover:underline"
+            onClick={onResetCalculator}
+            className="text-xs font-semibold text-amber-600 hover:text-red-600 hover:underline"
           >
-            Clear Manual Table Edits
+            Reset Calculator
           </button>
         )}
       </div>
