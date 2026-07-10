@@ -223,6 +223,64 @@ one year before the 2068 retirement year) and stays above it afterward. This als
 Coast FI date shown in ResultSummary later for every user, even without Auto-Coast enabled —
 correcting a previously-too-optimistic date, not a regression.
 
+### "Years to Project" replaced with "Project To Age", floored at 10 rows
+**Date**: 2026-07-09
+**Decision**: Renamed the `yearsToProject` field to `ageToProjectTo` (label "Project To Age",
+default 110, max 150). `calculateRows` now derives the actual row count internally as
+`Math.max(10, (birthYear + ageToProjectTo) - currentYear + 1)` instead of consuming a
+stored row count directly.
+**Why**: Asking users to mentally convert "how old do I want this to run to" into "how many
+years is that" was an unnecessary step — an age is what people actually think in. Computing
+the row count from age also needed a floor: if `ageToProjectTo` is close to (or below) the
+user's current age, a naive `age - currentAge` calculation could produce a degenerate
+1-row or empty table. A floor of 10 rows (chosen over an initial proposal of 50, which felt
+too aggressive relative to how close to the target age a table would still project) means the
+entered age acts as a *minimum* — the table always shows at least that age, or 10 rows,
+whichever is longer — without needing separate input validation to reject "unreasonable"
+ages relative to birth year.
+
+### Birth Year and Current Year get mutually-derived min/max bounds
+**Date**: 2026-07-09
+**Decision**: `NumberField` gained `max` support (mirroring existing `min` clamping — applies
+on typing, blur, and arrow-key stepping). Birth Year is bounded `[1900, values.currentYear]`;
+Current Year is bounded `[values.birthYear, new Date().getFullYear() + 100]`.
+**Why**: Both fields previously had no bounds, and — unlike other numeric inputs — a typo in
+either one could balloon the table to thousands of rows (since row count now derives from
+`ageToProjectTo - currentYear`, per the decision above) or produce a nonsensical negative age.
+The bounds are deliberately relative rather than hardcoded absolutes: Birth Year's ceiling is
+whatever Current Year is currently set to (not a literal year, which would go stale), and
+Current Year's ceiling is computed from the browser clock at runtime (`new Date()`), not a
+baked-in constant — both self-correct forever without code changes. The `+100` year headroom
+on Current Year (rather than capping at "today") was a deliberate choice to preserve a real
+use case: modeling a delayed plan start (e.g., "I start seriously saving in 2 years").
+
+### Annual/Monthly entry toggle for Contribution and Expenses — display-only conversion
+**Date**: 2026-07-10
+**Decision**: Added an Annual/Monthly toggle (left-aligned, bottom of the Inputs tab, below
+the FI Number field) that changes how the Annual Contribution and Annual Expenses fields are
+entered and displayed. `GlobalInputs.annualContribution`/`annualExpenses` remain the only
+source of truth and are always annual — the toggle's state lives outside `GlobalInputs`
+entirely (a local `entryUnit` state in `CalculatorClient.tsx`, the same pattern as `fillDown`).
+Conversion happens only at the `InputPanel` display/edit boundary: `toDisplay()` divides by
+12 (rounded to the nearest dollar) for showing, `fromDisplay()` multiplies by 12 when an edit
+commits. Toggling itself never calls `setField`, so switching back and forth never writes
+anything and can never drift the stored value through repeated rounding.
+**Why**: Two users independently said they think in monthly terms (paycheck-sized
+contributions, monthly bills) rather than annual. Converting purely at the input/display layer
+— rather than switching the calculation engine to monthly compounding — means zero changes to
+`calculator.ts`, the table, the chart, or Coast FI/FI-number math; the annual model that's
+already been tuned and bug-fixed stays untouched. The "no write on toggle" guarantee was a
+specific requirement: the user was concerned that toggling back and forth, combined with
+rounding a non-evenly-divisible annual figure (e.g. $10,000/yr → $833/mo), could cause the
+stored value to drift each round-trip. It can't, by construction — only an explicit, deliberate
+edit (typing a new number) ever converts and writes back, and `NumberField`'s existing
+no-op-on-blur guard (from an earlier fix) means tabbing through without changing anything
+doesn't trigger a write either.
+**Also added**: a reminder in the Monthly Expenses tooltip to spread irregular/annual costs
+(insurance premiums, property tax, car repairs) across the 12 months rather than omitting
+them — a real risk of thinking in monthly terms — and a corresponding bullet in the
+"How to use this calculator" instructions.
+
 ---
 
 ## Open — Needs Decision

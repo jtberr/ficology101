@@ -8,6 +8,7 @@ interface NumberFieldProps {
   onChange: (value: number) => void;
   step?: number;
   min?: number;
+  max?: number;
   prefix?: string;
   suffix?: string;
   help?: string;
@@ -19,6 +20,7 @@ export default function NumberField({
   onChange,
   step = 1,
   min,
+  max,
   prefix,
   suffix,
   help,
@@ -33,16 +35,23 @@ export default function NumberField({
       ? new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(value)
       : String(value);
 
+  function clamp(n: number): number {
+    let result = n;
+    if (min !== undefined) result = Math.max(min, result);
+    if (max !== undefined) result = Math.min(max, result);
+    return result;
+  }
+
   function parse(raw: string): number {
     const n = parseFloat(raw.replace(/[^0-9.-]/g, ""));
-    return isNaN(n) ? value : min !== undefined ? Math.max(min, n) : n;
+    return isNaN(n) ? value : clamp(n);
   }
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const raw = e.target.value;
     setDraft(raw);
     const parsed = parseFloat(raw.replace(/[^0-9.-]/g, ""));
-    if (!isNaN(parsed)) onChange(min !== undefined ? Math.max(min, parsed) : parsed);
+    if (!isNaN(parsed)) onChange(clamp(parsed));
   }
 
   function handleBlur() {
@@ -60,7 +69,7 @@ export default function NumberField({
       e.preventDefault();
       const cur = parse(draft ?? String(value));
       const next = cur + (e.key === "ArrowUp" ? step : -step);
-      const clamped = min !== undefined ? Math.max(min, next) : next;
+      const clamped = clamp(next);
       const str = String(Math.round(clamped * 10000) / 10000);
       setDraft(str);
       onChange(clamped);

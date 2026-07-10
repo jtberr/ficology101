@@ -20,8 +20,10 @@ export interface GlobalInputs {
   targetRetirementAge: number;
   /** When true, rows after Coast FI automatically default to $0 contribution. */
   autoCoast: boolean;
-  /** Number of rows to project; default 60. */
-  yearsToProject: number;
+  /** Age the projection should reach at minimum; default 110. The table always shows at
+   *  least 10 rows regardless, so a target age close to (or below) the user's current age
+   *  doesn't produce a degenerate short table. */
+  ageToProjectTo: number;
 }
 
 /** One row in the year-by-year table. The table is the source of truth for the projection. */

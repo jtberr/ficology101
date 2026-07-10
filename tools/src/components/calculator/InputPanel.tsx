@@ -5,6 +5,8 @@ import type { GlobalInputs } from "@/lib/types";
 import NumberField from "@/components/ui/NumberField";
 import InfoTooltip from "@/components/ui/InfoTooltip";
 
+type EntryUnit = "annual" | "monthly";
+
 interface InputPanelProps {
   values: GlobalInputs;
   onChange: (values: GlobalInputs) => void;
@@ -13,6 +15,8 @@ interface InputPanelProps {
   onFillDownChange: (fillDown: boolean) => void;
   applyInflationFillDown: boolean;
   onApplyInflationFillDownChange: (applyInflationFillDown: boolean) => void;
+  entryUnit: EntryUnit;
+  onEntryUnitChange: (unit: EntryUnit) => void;
   onReset: () => void;
   hasOverrides: boolean;
 }
@@ -27,6 +31,8 @@ export default function InputPanel({
   onFillDownChange,
   applyInflationFillDown,
   onApplyInflationFillDownChange,
+  entryUnit,
+  onEntryUnitChange,
   onReset,
   hasOverrides,
 }: InputPanelProps) {
@@ -34,6 +40,17 @@ export default function InputPanel({
 
   function setField<K extends keyof GlobalInputs>(field: K, value: GlobalInputs[K]) {
     onChange({ ...values, [field]: value });
+  }
+
+  // Annual Contribution and Annual Expenses are always stored as annual figures in
+  // GlobalInputs. When entryUnit is "monthly", these convert only at the display/edit
+  // boundary — the stored annual value never changes just from toggling the unit.
+  const isMonthly = entryUnit === "monthly";
+  function toDisplay(annualValue: number): number {
+    return isMonthly ? Math.round(annualValue / 12) : annualValue;
+  }
+  function fromDisplay(displayValue: number): number {
+    return isMonthly ? displayValue * 12 : displayValue;
   }
 
   const tabs: { id: Tab; label: string }[] = [
@@ -62,8 +79,8 @@ export default function InputPanel({
         ))}
       </div>
 
-      {/* Tab content — fixed height matches Inputs tab so panel never jumps between tabs */}
-      <div className="h-[340px]">
+      {/* Tab content — fixed height matches Inputs tab (tallest tab) so panel never jumps between tabs */}
+      <div className="h-[372px]">
 
         {activeTab === "inputs" && (
           <div className="space-y-3">
@@ -74,12 +91,16 @@ export default function InputPanel({
                   label="Birth Year"
                   value={values.birthYear}
                   onChange={(v) => setField("birthYear", v)}
+                  min={1900}
+                  max={values.currentYear}
                   help="Your birth year. Used to calculate your age for each row in the projection."
                 />
                 <NumberField
                   label="Current Year"
                   value={values.currentYear}
                   onChange={(v) => setField("currentYear", v)}
+                  min={values.birthYear}
+                  max={new Date().getFullYear() + 100}
                   help="The year the projection starts. Usually the current calendar year."
                 />
               </div>
@@ -97,12 +118,16 @@ export default function InputPanel({
                   help="Your total invested portfolio today — 401(k), IRA, brokerage accounts, etc. This is the starting balance for the projection."
                 />
                 <NumberField
-                  label="Annual Contribution"
-                  value={values.annualContribution}
-                  onChange={(v) => setField("annualContribution", v)}
-                  step={500}
+                  label={isMonthly ? "Monthly Contribution" : "Annual Contribution"}
+                  value={toDisplay(values.annualContribution)}
+                  onChange={(v) => setField("annualContribution", fromDisplay(v))}
+                  step={isMonthly ? 50 : 500}
                   prefix="$"
-                  help="How much you add to your portfolio each year while working. Set to 0 for a coasting period where you stop saving but aren't yet withdrawing."
+                  help={
+                    isMonthly
+                      ? "How much you add to your portfolio each month while working, rounded to the nearest dollar for display — the exact annual figure is stored and used in the projection. Set to 0 for a coasting period where you stop saving but aren't yet withdrawing."
+                      : "How much you add to your portfolio each year while working. Set to 0 for a coasting period where you stop saving but aren't yet withdrawing."
+                  }
                 />
               </div>
             </fieldset>
@@ -111,12 +136,16 @@ export default function InputPanel({
               <legend className="mb-2 text-sm font-semibold text-gray-900">Retirement</legend>
               <div className="grid grid-cols-2 gap-2">
                 <NumberField
-                  label="Annual Expenses"
-                  value={values.annualExpenses}
-                  onChange={(v) => setField("annualExpenses", v)}
-                  step={500}
+                  label={isMonthly ? "Monthly Expenses" : "Annual Expenses"}
+                  value={toDisplay(values.annualExpenses)}
+                  onChange={(v) => setField("annualExpenses", fromDisplay(v))}
+                  step={isMonthly ? 50 : 500}
                   prefix="$"
-                  help="Your expected yearly spending in retirement in today's dollars. This is used to calculate your FI number and sets your initial withdrawal amount (which then grows with inflation)."
+                  help={
+                    isMonthly
+                      ? "Your expected monthly spending in retirement in today's dollars, rounded to the nearest dollar for display — the exact annual figure is used to calculate your FI number and initial withdrawal amount (which then grows with inflation). Remember to spread irregular costs — insurance premiums, property tax, car repairs — across the 12 months too, not just your recurring bills."
+                      : "Your expected yearly spending in retirement in today's dollars. This is used to calculate your FI number and sets your initial withdrawal amount (which then grows with inflation)."
+                  }
                 />
                 <NumberField
                   label="Target Retire Age"
@@ -146,6 +175,30 @@ export default function InputPanel({
                 </div>
               </div>
             </fieldset>
+
+            <div className="flex items-center gap-2 text-sm">
+              <div className="inline-flex shrink-0 overflow-hidden rounded border border-gray-300">
+                <button
+                  type="button"
+                  onClick={() => onEntryUnitChange("annual")}
+                  className={`px-2 py-0.5 text-xs font-medium ${
+                    entryUnit === "annual" ? "bg-blue-500 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  Annual
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onEntryUnitChange("monthly")}
+                  className={`px-2 py-0.5 text-xs font-medium ${
+                    entryUnit === "monthly" ? "bg-blue-500 text-white" : "bg-white text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  Monthly
+                </button>
+              </div>
+              <InfoTooltip text="Switches how you enter and view the Annual Contribution and Annual Expenses fields below. Both are always stored as annual amounts internally — switching back and forth never changes the underlying value, only the display." />
+            </div>
           </div>
         )}
 
@@ -197,11 +250,12 @@ export default function InputPanel({
               <legend className="mb-2 text-sm font-semibold text-gray-900">Table Settings</legend>
               <div className="grid grid-cols-2 gap-2">
                 <NumberField
-                  label="Years to Project"
-                  value={values.yearsToProject}
-                  onChange={(v) => setField("yearsToProject", v)}
-                  min={1}
-                  help="How many years to show in the projection table and chart. 60 years covers most retirement scenarios."
+                  label="Project To Age"
+                  value={values.ageToProjectTo}
+                  onChange={(v) => setField("ageToProjectTo", v)}
+                  min={0}
+                  max={150}
+                  help="The table and chart run at least to this age (max 150). Regardless of this value, at least 10 rows are always shown, so the table stays useful even if this age is close to (or below) your current age."
                 />
               </div>
               <div className="mt-2 flex flex-col gap-2">

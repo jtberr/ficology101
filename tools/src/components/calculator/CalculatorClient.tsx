@@ -21,7 +21,7 @@ const DEFAULTS: GlobalInputs = {
   fiNumberOverride: null,
   targetRetirementAge: 65,
   autoCoast: false,
-  yearsToProject: 60,
+  ageToProjectTo: 110,
 };
 
 export default function CalculatorClient() {
@@ -29,6 +29,10 @@ export default function CalculatorClient() {
   const [overrides, setOverrides] = useState<CellOverrides>({});
   const [fillDown, setFillDown] = useState(false);
   const [applyInflationFillDown, setApplyInflationFillDown] = useState(true);
+  // Display-only preference — doesn't affect GlobalInputs or any calculation. Contribution
+  // and Expenses are always stored as annual figures; this just controls how they're
+  // entered/shown in the InputPanel.
+  const [entryUnit, setEntryUnit] = useState<"annual" | "monthly">("annual");
 
   // Derived state — recalculated only when inputs or overrides change.
   // Think of this as the equivalent of re-running a stored procedure when the parameters change.
@@ -111,6 +115,7 @@ export default function CalculatorClient() {
           <p className="mt-3 mb-1 font-semibold text-blue-900">Getting started</p>
           <ul className="space-y-1 pl-4 text-blue-800 marker:text-blue-400 list-disc">
             <li>Fill in the <strong>Inputs</strong> tab on the left — the chart, table, and summary cards update instantly. Use the <strong>Assumptions</strong> tab for return rates and the <strong>Settings</strong> tab for projection length and table options.</li>
+            <li><strong>Annual / Monthly</strong> toggle (bottom of the Inputs tab) lets you type Contribution and Expenses as yearly or monthly amounts, whichever is easier — calculations and table rows are always annual-based.</li>
             <li>The table auto-switches to retirement withdrawals at your <strong>Target Retire Age</strong>. Your <strong>FI Number</strong> is shown as a milestone — it auto-calculates from Annual Expenses ÷ Safe Withdrawal Rate, or type a value to override it and click <strong>↺ Reset to auto-calculate</strong> to go back.</li>
             <li>In the table, the <strong>Contribution / Withdrawal</strong> and <strong>Return %</strong> columns are editable (pencil icon in header). Click any cell to override it for a specific year. An <span className="font-medium text-amber-700">amber highlight</span> and <strong>↺</strong> icon appear when a cell has a manual override — click <strong>↺</strong> to restore just that cell to its calculated default.</li>
             <li><strong>Phase Fill Down</strong> (Settings tab) cascades a cell edit to all rows below it within the same phase. Stops at Accumulation → Coasting → Retirement boundaries so edits don&apos;t accidentally overwrite other phases.</li>
@@ -151,6 +156,8 @@ export default function CalculatorClient() {
               onFillDownChange={setFillDown}
               applyInflationFillDown={applyInflationFillDown}
               onApplyInflationFillDownChange={setApplyInflationFillDown}
+              entryUnit={entryUnit}
+              onEntryUnitChange={setEntryUnit}
               onReset={() => setOverrides({})}
               hasOverrides={Object.keys(overrides).length > 0}
             />

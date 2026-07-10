@@ -31,7 +31,17 @@ export function calculateRows(
   let retirementYearsElapsed = 0;
   const targetRetirementYear = globalInputs.birthYear + globalInputs.targetRetirementAge;
 
-  for (let i = 0; i < globalInputs.yearsToProject; i++) {
+  // The table always shows at least 10 rows, even if ageToProjectTo is close to (or below)
+  // the user's current age — that floor also covers the case where the target age is
+  // already behind them without needing separate input validation.
+  const MIN_PROJECTION_ROWS = 10;
+  const projectionEndYear = globalInputs.birthYear + globalInputs.ageToProjectTo;
+  const yearsToProject = Math.max(
+    MIN_PROJECTION_ROWS,
+    projectionEndYear - globalInputs.currentYear + 1
+  );
+
+  for (let i = 0; i < yearsToProject; i++) {
     const year = globalInputs.currentYear + i;
     const override = overrides[year];
     const inRetirement = year >= targetRetirementYear;

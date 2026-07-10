@@ -1,7 +1,7 @@
 # Progress
 # FIcology101 FIRE Calculator
 
-**Last updated**: 2026-07-05
+**Last updated**: 2026-07-10
 
 ---
 
@@ -135,8 +135,25 @@ ficology101.com WordPress blog. No login, no backend — fully client-side.
       number and never reached it. Verified fixed via standalone simulation of the exact
       reported inputs before and after the change.
 
+## Completed (continued — 2026-07-09 / 2026-07-10 feature session)
+- [x] Renamed "Years to Project" to "Project To Age" (default 110, max 150); row count now
+      derives from age/birth year/current year with a 10-row floor instead of a stored count
+      — see DECISIONS.md
+- [x] Added `max` support to `NumberField` (mirrors existing `min` clamping)
+- [x] Added mutually-derived bounds to Birth Year (`1900`–Current Year) and Current Year
+      (Birth Year–`today + 100`) — see DECISIONS.md
+- [x] Added Annual/Monthly entry toggle for Annual Contribution and Annual Expenses
+      (`InputPanel.tsx`, left-aligned below FI Number); conversion is display-only, storage
+      stays annual always, toggling never writes — see DECISIONS.md
+- [x] Added irregular-expense reminder to the Monthly Expenses tooltip and a corresponding
+      bullet to the "How to use this calculator" instructions
+
 ## Up Next (in order)
-*None — deployment pipeline is live. Future work is new features/fixes as they come up.*
+1. Persist user inputs across visits via `localStorage` (auto-save on every input change,
+   restore on load) plus a "Reset All Inputs" button to clear saved data and return to
+   defaults — discussed and agreed in principle, not yet built. A shareable-URL option
+   (encode inputs into a query param for bookmarking/sharing) was also discussed as a
+   complementary approach, not yet decided whether to build both or just localStorage.
 
 ---
 
