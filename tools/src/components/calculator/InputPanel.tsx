@@ -266,7 +266,7 @@ export default function InputPanel({
                   onChange={(v) => setField("safeWithdrawalRatePct", v)}
                   step={0.1}
                   suffix="%"
-                  help="The percentage of your portfolio you withdraw each year in retirement. The classic '4% rule' suggests this rate is sustainable for a 30-year retirement in most historical market scenarios."
+                  help="Used to calculate your FI Number (Annual Expenses ÷ SWR) and set your first year's withdrawal in retirement. Each following year's withdrawal grows with the Inflation Rate rather than being recalculated as a percentage of your portfolio balance. The classic '4% rule' suggests this rate is sustainable for a 30-year retirement in most historical market scenarios."
                 />
                 <NumberField
                   label="Inflation Rate"

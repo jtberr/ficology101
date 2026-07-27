@@ -100,6 +100,9 @@ export default function NumberField({
           onChange={handleChange}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
+          autoComplete="off"
+          data-1p-ignore
+          data-lpignore="true"
         />
         {suffix && <span className="text-gray-400">{suffix}</span>}
       </div>
