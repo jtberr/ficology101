@@ -1,4 +1,4 @@
-@Agents.md
+@AGENTS.md
 @ai-context/DECISIONS.md
 @ai-context/PROGRESS.md
 @tools/AGENTS.md
