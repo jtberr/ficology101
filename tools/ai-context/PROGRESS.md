@@ -175,6 +175,10 @@ ficology101.com WordPress blog. No login, no backend — fully client-side.
       `isDepletionCrossing(row) = row.startBalance > 0 && row.endBalance <= 0` per row
       instead, and no longer takes a `depletionYear` prop — see DECISIONS.md.
 
+## Completed (continued — 2026-07-28)
+- [x] Added Google Analytics 4 tracking via `@next/third-parties/google`'s `<GoogleAnalytics>`
+      component in `layout.tsx` (measurement ID `G-931FCTRXS7`) — see DECISIONS.md
+
 ## Up Next (in order)
 *None — all recently-discussed features are built. Future work is new features/fixes as they
 come up.*

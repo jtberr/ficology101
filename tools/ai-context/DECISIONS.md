@@ -383,6 +383,20 @@ used by the "Money Lasts Until" summary card and the chart's $0 reference-line v
 both are correctly first-satisfied, day-one-inclusive concepts (same reasoning as the FI/Coast
 FI cards), so only the table's per-row labeling needed the crossing treatment.
 
+### Google Analytics via `@next/third-parties/google`, not a hand-rolled script tag
+**Date**: 2026-07-28
+**Decision**: Added GA4 tracking using the official `@next/third-parties` package's
+`<GoogleAnalytics gaId="G-931FCTRXS7" />` component, rendered in `layout.tsx` (site-wide,
+every route).
+**Why**: `@next/third-parties` is Next.js's own maintained wrapper around the GA gtag.js
+snippet — it loads the script with the correct `next/script` strategy (after hydration,
+non-blocking) and handles SPA route-change pageview tracking automatically, which a hand-rolled
+`<script>` tag would need to reimplement. This does not conflict with the "no user data sent
+to a server" / "never store or log user financial inputs" absolute rules in AGENTS.md — those
+rules are about the calculator's financial inputs (balance, contributions, expenses, etc.)
+staying client-side-only and never being transmitted; GA tracks page views/traffic, not
+calculator field values, and nothing in the app forwards input state to GA.
+
 ---
 
 ## Open — Needs Decision
